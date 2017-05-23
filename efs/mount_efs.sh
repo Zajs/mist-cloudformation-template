@@ -24,3 +24,10 @@ mount -t nfs4 $DIR_SRC:/ $DIR_TGT
 cp -p /etc/fstab /etc/fstab.back-$(date +%F)
 #Append line to fstab
 echo -e "$DIR_SRC:/ \t\t $DIR_TGT \t\t nfs \t\t defaults \t\t 0 \t\t 0" | tee -a /etc/fstab
+
+
+#Create folders if this needs
+if [ ! -d "$DIR_TGT/mist-configs" ]; then
+    mkdir $DIR_TGT/mist-configs
+    #copy files
+fi

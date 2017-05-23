@@ -53,6 +53,11 @@
       "Type": "AWS::EC2::KeyPair::KeyName",
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the EC2 instances."
     },
+    "RootUrlDownload": {
+      "Type": "String",
+      "Default": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master",
+      "Description": "ECS configuration scripts"
+    },
     "SparkVersion": {
       "Type": "String",
       "Default": "2.1.0",
@@ -267,7 +272,7 @@
     "InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription":"Common security group",
+        "GroupDescription": "Common security group",
         "VpcId": {
           "Ref": "VPC"
         },
@@ -302,7 +307,7 @@
     "MistMasterSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription":"Mist UI security group",
+        "GroupDescription": "Mist UI security group",
         "VpcId": {
           "Ref": "VPC"
         },
@@ -487,7 +492,7 @@
             "packages": {
               "yum": {
                 "jq": [],
-                "nfs-utils":[]
+                "nfs-utils": []
               },
               "python": {
                 "awscli": []
@@ -512,27 +517,121 @@
                       "EFS_NAME=",
                       {
                         "Ref": "EFSNameTag"
+                      },
+                      "\n",
+                      "ECS_INSTANCE_ATTRIBUTES={",
+                      "\"MIST_ROLE\":\"master\"",
+                      "}",
+                      "\n",
+                      "ROOT_URL_DOWNLOAD={",
+                      {
+                        "Ref": "RootUrlDownload"
                       }
                     ]
                   ]
                 }
               },
               "/etc/init/ecs.override": {
-                "source": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master/weave/ecs.override"
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "weave",
+                      "ecs.override"
+                    ]
+                  ]
+                }
               },
               "/etc/init/weave.conf": {
-                "source": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master/weave/weave.conf"
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "weave",
+                      "weave.conf"
+                    ]
+                  ]
+                }
               },
               "/etc/weave/run.sh": {
-                "source": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master/weave/run.sh",
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "weave",
+                      "run.sh"
+                    ]
+                  ]
+                },
                 "mode": "000755"
               },
               "/etc/weave/peers.sh": {
-                "source": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master/weave/peers.sh",
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "weave",
+                      "peers.sh"
+                    ]
+                  ]
+                },
+                "mode": "000755"
+              },
+              "/usr/local/bin/mist-worker-start.sh": {
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "mist",
+                      "mist-worker-start.sh"
+                    ]
+                  ]
+                },
+                "mode": "000755"
+              },
+              "/usr/local/bin/mist-worker-stop.sh": {
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "mist",
+                      "mist-worker-stop.sh"
+                    ]
+                  ]
+                },
                 "mode": "000755"
               },
               "/usr/local/bin/mount_efs": {
-                "source": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master/efs/mount_efs.sh",
+                "source": {
+                  "Fn::Join": [
+                    "/",
+                    [
+                      {
+                        "Ref": "RootUrlDownload"
+                      },
+                      "efs",
+                      "mount_efs.sh"
+                    ]
+                  ]
+                },
                 "mode": "000755"
               },
               "/usr/local/bin/weave": {
@@ -594,6 +693,69 @@
             "PropagateAtLaunch": "true"
           }
         ]
+      }
+    },
+    "MistMasterTaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Name": "mist-master",
+            "Essential": "true",
+            "links": [
+              "mosquitto:mosquitto"
+            ],
+            "MountPoints": [
+              {
+                "ContainerPath": "/usr/share/mist/configs/",
+                "SourceVolume": "mist-configs"
+              },
+              {
+                "ContainerPath": "/jobs/",
+                "SourceVolume": "mist-jobs"
+              }
+            ]
+          },
+          {
+            "Name": "mosquitto",
+            "Memory": 500,
+            "Cpu": 250,
+            "Image": "ansi/mosquitto",
+            "Essential": true
+          }
+        ],
+        "Volumes": [
+          {
+            "Host": {
+              "SourcePath": "/mnt/efs/mist-jobs"
+            },
+            "Name": "mist-jobs"
+          },
+          {
+            "Host": {
+              "SourcePath": "/mnt/efs/mist-configs"
+            },
+            "Name": "mist-configs"
+          }
+        ]
+      }
+    },
+    "MistMasterService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": [
+        "MistMasterInstanceAsg"
+      ],
+      "Properties": {
+        "Cluster": {
+          "Ref": "EcsCluster"
+        },
+        "DesiredCount": "1",
+        "Role": {
+          "Ref": "DescribeRole"
+        },
+        "TaskDefinition": {
+          "Ref": "MistMasterTaskDefinition"
+        }
       }
     }
   },
