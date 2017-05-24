@@ -14,7 +14,8 @@
   "Parameters": {
     "EcsClusterName": {
       "Type": "String",
-      "Description": "Specifies the ECS Cluster Name with which the resources would be associated."
+      "Description": "Specifies the ECS Cluster Name with which the resources would be associated.",
+      "MinLength": 1
     },
     "EcsInstanceType": {
       "Type": "String",
@@ -56,7 +57,8 @@
     "RootUrlDownload": {
       "Type": "String",
       "Default": "https://raw.githubusercontent.com/Zajs/mist-cloudformation-template/master",
-      "Description": "ECS configuration scripts"
+      "Description": "ECS configuration scripts",
+      "MinLength": 1
     },
     "SparkVersion": {
       "Type": "String",
@@ -66,6 +68,13 @@
         "2.0.2",
         "1.6.2",
         "1.5.2"
+      ]
+    },
+    "MistVersion": {
+      "Type": "String",
+      "Default": "0.11.0",
+      "AllowedValues": [
+        "0.11.0"
       ]
     },
     "EFSNameTag": {
@@ -386,7 +395,9 @@
               "Effect": "Allow",
               "Principal": {
                 "Service": [
-                  "ec2.amazonaws.com"
+                  "ec2.amazonaws.com",
+                  "ecs.amazonaws.com",
+                  "ecs-tasks.amazonaws.com"
                 ]
               },
               "Action": [
@@ -406,9 +417,10 @@
                   "Action": [
                     "ec2:*",
                     "ecs:*",
+                    "cloudformation:*",
                     "elasticfilesystem:Describe*"
                   ],
-                  "Resource": "*"
+                  "Resource": ["*"]
                 }
               ]
             }
@@ -523,9 +535,19 @@
                       "\"MIST_ROLE\":\"master\"",
                       "}",
                       "\n",
-                      "ROOT_URL_DOWNLOAD={",
+                      "ROOT_URL_DOWNLOAD=",
                       {
                         "Ref": "RootUrlDownload"
+                      },
+                      "\n",
+                      "SPARK_VERSION=",
+                      {
+                        "Ref": "SparkVersion"
+                      },
+                      "\n",
+                      "MIST_VERSION=",
+                      {
+                        "Ref": "MistVersion"
                       }
                     ]
                   ]
@@ -584,36 +606,6 @@
                       },
                       "weave",
                       "peers.sh"
-                    ]
-                  ]
-                },
-                "mode": "000755"
-              },
-              "/usr/local/bin/mist-worker-start.sh": {
-                "source": {
-                  "Fn::Join": [
-                    "/",
-                    [
-                      {
-                        "Ref": "RootUrlDownload"
-                      },
-                      "mist",
-                      "mist-worker-start.sh"
-                    ]
-                  ]
-                },
-                "mode": "000755"
-              },
-              "/usr/local/bin/mist-worker-stop.sh": {
-                "source": {
-                  "Fn::Join": [
-                    "/",
-                    [
-                      {
-                        "Ref": "RootUrlDownload"
-                      },
-                      "mist",
-                      "mist-worker-stop.sh"
                     ]
                   ]
                 },
@@ -697,13 +689,40 @@
     },
     "MistMasterTaskDefinition": {
       "Type": "AWS::ECS::TaskDefinition",
+      "DependsOn": [
+        "DescribeRole"
+      ],
       "Properties": {
+        "TaskRoleArn": { "Fn::GetAtt": ["DescribeRole", "Arn"] },
         "ContainerDefinitions": [
           {
             "Name": "mist-master",
+            "MemoryReservation": "200",
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs",
+                  {
+                    "Ref": "MistVersion"
+                  },
+                  "-",
+                  {
+                    "Ref": "SparkVersion"
+                  }
+                ]
+              ]
+            },
+            "Command":"master",
             "Essential": "true",
-            "links": [
+            "Links": [
               "mosquitto:mosquitto"
+            ],
+            "Environment":[
+              {
+                "Name":"MIST_CONFIG",
+                "Value":"/usr/share/mist/configs/default.conf"
+              }
             ],
             "MountPoints": [
               {
@@ -746,13 +765,19 @@
         "MistMasterInstanceAsg"
       ],
       "Properties": {
+        "PlacementConstraints": [
+          {
+            "Type": "memberOf",
+            "Expression": "attribute:MIST_ROLE == master"
+          },
+          {
+            "Type": "distinctInstance"
+          }
+        ],
         "Cluster": {
           "Ref": "EcsCluster"
         },
         "DesiredCount": "1",
-        "Role": {
-          "Ref": "DescribeRole"
-        },
         "TaskDefinition": {
           "Ref": "MistMasterTaskDefinition"
         }

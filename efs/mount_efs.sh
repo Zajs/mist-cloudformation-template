@@ -29,5 +29,9 @@ echo -e "$DIR_SRC:/ \t\t $DIR_TGT \t\t nfs \t\t defaults \t\t 0 \t\t 0" | tee -a
 #Create folders if this needs
 if [ ! -d "$DIR_TGT/mist-configs" ]; then
     mkdir $DIR_TGT/mist-configs
+    cd $DIR_TGT/mist-configs
+
     #copy files
+    curl -O $ROOT_URL_DOWNLOAD/mist-conf/default.conf
+    curl -O $ROOT_URL_DOWNLOAD/mist-conf/router-examples-spark2.conf
 fi
