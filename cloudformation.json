@@ -60,6 +60,15 @@
       "Description": "ECS configuration scripts",
       "MinLength": 1
     },
+    "MistVersion": {
+      "Type": "String",
+      "Default": "0.11.0",
+      "AllowedValues": [
+        "0.11.0"
+      ]
+    },
+
+
     "SparkVersion": {
       "Type": "String",
       "Default": "2.1.0",
@@ -70,13 +79,44 @@
         "1.5.2"
       ]
     },
-    "MistVersion": {
-      "Type": "String",
-      "Default": "0.11.0",
-      "AllowedValues": [
-        "0.11.0"
-      ]
+    "SparkSlavesCount": {
+      "Type": "Number",
+      "Default": "2"
     },
+    "SparkInstanceType": {
+      "Type": "String",
+      "Description": "ECS instance type",
+      "Default": "t2.small",
+      "AllowedValues": [
+        "t2.small",
+        "t2.medium",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+
     "EFSNameTag": {
       "Description": "The name of the EFS volume",
       "Type": "String",
@@ -437,7 +477,7 @@
         }
       }
     },
-    "ContainerInstances": {
+    "MistMasterLaunchConfiguration": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
         "ImageId": {
@@ -489,10 +529,12 @@
                         "Ref": "AWS::Region"
                       },
                       "--resource",
-                      "ContainerInstances\n"
+                      "MistMasterLaunchConfiguration"
                     ]
                   ]
                 },
+                "\n"
+                ,
                 "/usr/local/bin/mount_efs"
               ]
             ]
@@ -532,23 +574,23 @@
                         "Ref": "EFSNameTag"
                       },
                       "\n",
-                      "ECS_INSTANCE_ATTRIBUTES={",
-                      "\"MIST_ROLE\":\"master\"",
-                      "}",
+                      "ECS_INSTANCE_ATTRIBUTES={\"MIST_ROLE\":\"",
+                      "role_master",
+                      "\"}",
                       "\n",
                       "ROOT_URL_DOWNLOAD=",
                       {
                         "Ref": "RootUrlDownload"
                       },
                       "\n",
-                      "SPARK_VERSION=",
-                      {
-                        "Ref": "SparkVersion"
-                      },
-                      "\n",
                       "MIST_VERSION=",
                       {
                         "Ref": "MistVersion"
+                      },
+                      "\n",
+                      "SPARK_VERSION=",
+                      {
+                        "Ref": "SparkVersion"
                       }
                     ]
                   ]
@@ -664,7 +706,7 @@
           }
         ],
         "LaunchConfigurationName": {
-          "Ref": "ContainerInstances"
+          "Ref": "MistMasterLaunchConfiguration"
         },
         "MinSize": "1",
         "MaxSize": "1",
@@ -688,6 +730,7 @@
         ]
       }
     },
+
     "MistMasterTaskDefinition": {
       "Type": "AWS::ECS::TaskDefinition",
       "DependsOn": [
@@ -695,6 +738,7 @@
       ],
       "Properties": {
         "TaskRoleArn": { "Fn::GetAtt": ["DescribeRole", "Arn"] },
+        "NetworkMode":"bridge",
         "ContainerDefinitions": [
           {
             "Name": "mist-master",
@@ -714,6 +758,12 @@
                 ]
               ]
             },
+            "PortMappings":[
+              {
+                "ContainerPort": 2004,
+                "HostPort": 2004
+              }
+            ],
             "Command":["master"],
             "Essential": "true",
             "Links": [
@@ -723,6 +773,36 @@
               {
                 "Name":"MIST_CONFIG",
                 "Value":"/usr/share/mist/configs/default.conf"
+              },
+              {
+                "Name":"MIST_VERSION",
+                "Value":{
+                  "Ref": "MistVersion"
+                }
+              },
+              {
+                "Name":"STACK_NAME",
+                "Value":{
+                  "Ref": "AWS::StackName"
+                }
+              },
+              {
+                "Name":"SPARK_VERSION",
+                "Value":{
+                  "Ref": "SparkVersion"
+                }
+              },
+              {
+                "Name":"SPARK_INSTANCE_TYPE",
+                "Value":{
+                  "Ref": "SparkInstanceType"
+                }
+              },
+              {
+                "Name":"SPARK_SLAVE_SCOUNT",
+                "Value":{
+                  "Ref": "SparkSlavesCount"
+                }
               }
             ],
             "MountPoints": [
@@ -769,7 +849,7 @@
         "PlacementConstraints": [
           {
             "Type": "memberOf",
-            "Expression": "attribute:MIST_ROLE == master"
+            "Expression": "attribute:MIST_ROLE == role_master"
           },
           {
             "Type": "distinctInstance"

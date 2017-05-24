@@ -1,53 +1,40 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
+shift
+while [[ $# > 1 ]]
+do
+  key="$1"
 
-requestMist="{
-             \"family\": \"${EcsClusterName}-master\",
-             \"containerDefinitions\": [
-               {
-                 \"name\": \"${EcsClusterName}-master\",
-                 \"memory\": $[$memory-500],
-                 \"cpu\": $[$cpu-250],
-                 \"image\": \"hydrosphere/mist:ecs-${SparkVersion}\",
-                 \"command\": [
-                   \"mist-ecs\"
-                 ],
-                 \"links\": [
-                   \"mosquitto:mosquitto\"
-                 ],
-                 \"essential\": true,
-                 \"mountPoints\": [
-                   {
-                     \"sourceVolume\": \"mist-configs\",
-                     \"containerPath\": \"/usr/share/mist/configs/\",
-                     \"readOnly\": false
-                   },
-                   {
-                     \"sourceVolume\": \"mist-jobs\",
-                     \"containerPath\": \"/jobs/\",
-                     \"readOnly\": false
-                   }
-                 ]
-               },{
-                 \"name\": \"mosquitto\",
-                 \"memory\": 500,
-                 \"cpu\": 250,
-                 \"image\": \"ansi/mosquitto\",
-                 \"essential\": true
-               }
-             ],
-             \"volumes\": [
-               {
-                 \"name\": \"mist-configs\",
-                 \"host\": {
-                   \"sourcePath\": \"/mnt/efs/mist-configs\"
-                 }
-               },
-               {
-                 \"name\": \"mist-jobs\",
-                 \"host\": {
-                   \"sourcePath\": \"/mnt/efs/mist-jobs\"
-                 }
-               }
-             ]
-           }"
+  case ${key} in
+    --namespace)
+      ARG_NAMESPACE="$2"
+      shift
+      ;;
+
+    --jar)
+      ARG_JAR="$2"
+      shift
+      ;;
+
+    --config)
+      ARG_CONFIG="$2"
+      shift
+      ;;
+
+    --run-options)
+      ARG_RUN_OPTIONS="$2"
+      shift
+      ;;
+  esac
+
+shift
+done
+
+EC2_REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+aws configure set default.region $EC2_REGION
+ORIGINAL_TEMPLATE=$(aws cloudformation get-template --stack-name $STACK_NAME | jq .TemplateBody)
+
+echo "LCSparkSlave$ARG_NAMESPACE"
+echo "ASGroupSparkSlave$ARG_NAMESPACE"
+echo "LCWorker$ARG_NAMESPACE"
+echo "ASGroupWorker$ARG_NAMESPACE"

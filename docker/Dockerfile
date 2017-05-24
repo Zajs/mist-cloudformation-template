@@ -5,6 +5,7 @@ ENV MIST_CONFIG=/usr/share/mist/configs/docker.conf
 COPY docker-entrypoint.sh /
 COPY mist-worker-start.sh /usr/share/mist/bin/
 COPY mist-worker-stop.sh /usr/share/mist/bin/
+ADD template /usr/share/mist/bin/template
 
 RUN chmod +x /docker-entrypoint.sh && \
     chmod +x /usr/share/mist/bin/*.sh && \

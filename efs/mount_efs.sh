@@ -34,5 +34,5 @@ if [ ! -d "$DIR_TGT/mist-configs" ]; then
 
     #copy files
     curl -O $ROOT_URL_DOWNLOAD/mist-conf/default.conf
-    curl -O $ROOT_URL_DOWNLOAD/mist-conf/router-examples-spark2.conf
+    curl -O $ROOT_URL_DOWNLOAD/mist-conf/router.conf
 fi
