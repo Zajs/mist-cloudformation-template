@@ -25,7 +25,8 @@ cp -p /etc/fstab /etc/fstab.back-$(date +%F)
 #Append line to fstab
 echo -e "$DIR_SRC:/ \t\t $DIR_TGT \t\t nfs \t\t defaults \t\t 0 \t\t 0" | tee -a /etc/fstab
 
-
+service docker stop
+service docker start
 #Create folders if this needs
 if [ ! -d "$DIR_TGT/mist-configs" ]; then
     mkdir $DIR_TGT/mist-configs

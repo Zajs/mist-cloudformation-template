@@ -417,6 +417,7 @@
                   "Action": [
                     "ec2:*",
                     "ecs:*",
+                    "ecr:*",
                     "cloudformation:*",
                     "elasticfilesystem:Describe*"
                   ],
@@ -702,7 +703,7 @@
               "Fn::Join": [
                 "",
                 [
-                  "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs",
+                  "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs:",
                   {
                     "Ref": "MistVersion"
                   },
@@ -713,7 +714,7 @@
                 ]
               ]
             },
-            "Command":"master",
+            "Command":["master"],
             "Essential": "true",
             "Links": [
               "mosquitto:mosquitto"
