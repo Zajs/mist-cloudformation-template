@@ -31,9 +31,10 @@ do
 shift
 done
 
+echo ready
 
-LC_TEMPLATE_FILE=template/mist-worker-launchconfiguration.json
-AS_TEMPLATE_FILE=template/mist-worker-services.json
+LC_TEMPLATE_FILE=$MIST_HOME/bin/template/mist-worker-launchconfiguration.json
+AS_TEMPLATE_FILE=$MIST_HOME/bin/template/mist-worker-services.json
 
 ORIG_LAUNCH_CONFIG_NAME=MistMasterLaunchConfiguration
 ORIG_INSTANCE_SECURITY_GROUP=InstanceSecurityGroup
@@ -63,7 +64,7 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_N
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_ROLE__/role_worker/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/1/g")
 
-ADD=$(jq "$ADD + $launchConfiguration")
+ADD=$(echo '{}' | jq "$ADD + $launchConfiguration")
 
 launchConfiguration=$(cat $AS_TEMPLATE_FILE)
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__MIST_CONFIG__/$ARG_CONFIG/g")
@@ -71,5 +72,9 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_N
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/$SPARK_SLAVE_SCOUNT/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__RUN_OPTIONS__/$ARG_RUN_OPTIONS/g")
 
-ADD=$(jq "$ADD + $launchConfiguration")
+ADD=$(echo '{}' | jq "$ADD + $launchConfiguration")
 
+tfile=$(mktemp /tmp/foo.XXXXXXXXX)
+echo $ORIGINAL_TEMPLATE | jq ".Resources = (.Resources + $ADD)" > $tfile
+
+aws cloudformation update-stack --stack-name $STACK_NAME --template-body file://$tfile --parameters ParameterKey=KeyName,UsePreviousValue=true ParameterKey=EcsClusterName,UsePreviousValue=true ParameterKey=EcsInstanceType,UsePreviousValue=true ParameterKey=RootUrlDownload,UsePreviousValue=true ParameterKey=MistVersion,UsePreviousValue=true ParameterKey=SparkVersion,UsePreviousValue=true ParameterKey=SparkSlavesCount,UsePreviousValue=true ParameterKey=SparkInstanceType,UsePreviousValue=true ParameterKey=EFSNameTag,UsePreviousValue=true --capabilities CAPABILITY_IAM

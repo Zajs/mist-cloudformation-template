@@ -11,7 +11,7 @@
         ]
       },
       "InstanceType": {
-        "Ref": "EcsInstanceType"
+        "Ref": "SparkInstanceType"
       },
       "AssociatePublicIpAddress": true,
       "IamInstanceProfile": {
