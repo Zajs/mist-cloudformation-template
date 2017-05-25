@@ -1,6 +1,8 @@
 FROM hydrosphere/mist:0.11.0-2.1.0
 
 ENV MIST_CONFIG=/usr/share/mist/configs/docker.conf
+ENV RUN_OPTIONS=
+ENV NAMESPACE=
 
 COPY docker-entrypoint.sh /
 COPY mist-worker-start.sh /usr/share/mist/bin/

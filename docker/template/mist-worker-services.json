@@ -1,250 +1,209 @@
-  "LC__TYPE____NAMESPACE__":{
-    "Type": "AWS::AutoScaling::LaunchConfiguration",
+{"WorkerTaskDefinition__NAMESPACE__": {
+    "Type": "AWS::ECS::TaskDefinition",
+    "DependsOn": [
+      "DescribeRole"
+    ],
     "Properties": {
-      "ImageId": {
-        "Fn::FindInMap": [
-          "EcsAmiMap",
-          {
-            "Ref": "AWS::Region"
-          },
-          "AMI"
+      "TaskRoleArn": {
+        "Fn::GetAtt": [
+          "DescribeRole",
+          "Arn"
         ]
       },
-      "InstanceType": {
-        "Ref": "EcsInstanceType"
-      },
-      "AssociatePublicIpAddress": true,
-      "IamInstanceProfile": {
-        "Ref": "EcsInstanceProfile"
-      },
-      "KeyName": {
-        "Ref": "KeyName"
-      },
-      "SecurityGroups": [
+      "NetworkMode": "bridge",
+      "ContainerDefinitions": [
         {
-          "Ref": "InstanceSecurityGroup"
-        }
-      ],
-      "UserData": {
-        "Fn::Base64": {
-          "Fn::Join": [
-            "\n",
-            [
-              "#!/bin/bash -ex\n",
-              "yum install -y aws-cfn-bootstrap\n",
-              {
-                "Fn::Join": [
-                  " ",
-                  [
-                    "/opt/aws/bin/cfn-init",
-                    "--verbose",
-                    "--stack",
-                    {
-                      "Ref": "AWS::StackName"
-                    },
-                    "--region",
-                    {
-                      "Ref": "AWS::Region"
-                    },
-                    "--resource",
-                    "LC__TYPE____NAMESPACE__"
-                  ]
-                ]
-              },
-              "\n",
-              "/usr/local/bin/mount_efs"
-            ]
-          ]
-        }
-      }
-    },
-    "Metadata": {
-      "AWS::CloudFormation::Init": {
-        "config": {
-          "packages": {
-            "yum": {
-              "jq": [],
-              "nfs-utils": []
-            },
-            "python": {
-              "awscli": []
-            }
-          },
-          "files": {
-            "/etc/ecs/ecs.config": {
-              "content": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "ECS_CLUSTER=",
-                    {
-                      "Ref": "EcsCluster"
-                    },
-                    "\n",
-                    "STACK_NAME=",
-                    {
-                      "Ref": "AWS::StackName"
-                    },
-                    "\n",
-                    "EFS_NAME=",
-                    {
-                      "Ref": "EFSNameTag"
-                    },
-                    "\n",
-                    "ECS_INSTANCE_ATTRIBUTES={",
-                    "\"MIST_ROLE\":\"__INSTANCE_ROLE__\"",
-                    ",\"MIST_NAMESPACE\":\"__NAMESPACE__\"",
-                    "}",
-                    "\n",
-                    "ROOT_URL_DOWNLOAD=",
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "\n",
-                    "MIST_VERSION=",
-                    {
-                      "Ref": "MistVersion"
-                    },
-                    "\n",
-                    "SPARK_VERSION=",
-                    {
-                      "Ref": "SparkVersion"
-                    }
-                  ]
-                ]
-              }
-            },
-            "/etc/init/ecs.override": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "weave",
-                    "ecs.override"
-                  ]
-                ]
-              }
-            },
-            "/etc/init/weave.conf": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "weave",
-                    "weave.conf"
-                  ]
-                ]
-              }
-            },
-            "/etc/weave/run.sh": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "weave",
-                    "run.sh"
-                  ]
-                ]
-              },
-              "mode": "000755"
-            },
-            "/etc/weave/peers.sh": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "weave",
-                    "peers.sh"
-                  ]
-                ]
-              },
-              "mode": "000755"
-            },
-            "/usr/local/bin/mount_efs": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    {
-                      "Ref": "RootUrlDownload"
-                    },
-                    "efs",
-                    "mount_efs.sh"
-                  ]
-                ]
-              },
-              "mode": "000755"
-            },
-            "/usr/local/bin/weave": {
-              "source": {
-                "Fn::Join": [
-                  "/",
-                  [
-                    "https://github.com/weaveworks/weave/releases/download",
-                    "v1.9.5",
-                    "weave"
-                  ]
-                ]
-              },
-              "mode": "000755"
-            }
-          }
-        }
-      }
-    }
-  },
-  "ASGroup__TYPE____NAMESPACE__":{
-    "Type": "AWS::AutoScaling::AutoScalingGroup",
-    "Properties": {
-      "VPCZoneIdentifier": [
-        {
-          "Fn::Join": [
-            ",",
-            [
-              {
-                "Ref": "Subnet2"
-              },
-              {
-                "Ref": "Subnet1"
-              }
-            ]
-          ]
-        }
-      ],
-      "LaunchConfigurationName": {
-        "Ref": "LC__TYPE____NAMESPACE__"
-      },
-      "MinSize": "__INSTANCE_COUNT__",
-      "MaxSize": "__INSTANCE_COUNT__",
-      "DesiredCapacity": "__INSTANCE_COUNT__",
-      "Tags": [
-        {
-          "Key": "Name",
-          "Value": {
+          "Name": "mist-worker-__NAMESPACE__",
+          "MemoryReservation": "200",
+          "Image": {
             "Fn::Join": [
               "",
               [
-                "ECS Instance - ",
+                "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs:",
                 {
-                  "Ref": "AWS::StackName"
+                  "Ref": "MistVersion"
+                },
+                "-",
+                {
+                  "Ref": "SparkVersion"
                 }
               ]
             ]
           },
-          "PropagateAtLaunch": "true"
+          "Command": [
+            "worker"
+          ],
+          "Essential": "true",
+          "Environment": [
+            {
+              "Name": "STACK_NAME",
+              "Value": {
+                "Ref": "AWS::StackName"
+              }
+            },
+            {
+              "Name": "RUN_OPTIONS",
+              "Value": "__RUN_OPTIONS__"
+            },
+            {
+              "Name": "NAMESPACE",
+              "Value": "__NAMESPACE__"
+            },
+            {
+              "Name": "MIST_CONFIG",
+              "Value": "__MIST_CONFIG__"
+            }
+          ],
+          "MountPoints": [
+            {
+              "ContainerPath": "/usr/share/mist/configs/",
+              "SourceVolume": "mist-configs"
+            },
+            {
+              "ContainerPath": "/jobs/",
+              "SourceVolume": "mist-jobs"
+            }
+          ]
+        }
+      ],
+      "Volumes": [
+        {
+          "Host": {
+            "SourcePath": "/mnt/efs/mist-jobs"
+          },
+          "Name": "mist-jobs"
+        },
+        {
+          "Host": {
+            "SourcePath": "/mnt/efs/mist-configs"
+          },
+          "Name": "mist-configs"
         }
       ]
     }
+  },
+  "SparkSlavesTaskDefinition__NAMESPACE__": {
+    "Type": "AWS::ECS::TaskDefinition",
+    "DependsOn": [
+      "DescribeRole"
+    ],
+    "Properties": {
+      "TaskRoleArn": {
+        "Fn::GetAtt": [
+          "DescribeRole",
+          "Arn"
+        ]
+      },
+      "NetworkMode": "bridge",
+      "ContainerDefinitions": [
+        {
+          "Name": "spark-slave-__NAMESPACE__",
+          "MemoryReservation": "200",
+          "Image": {
+            "Fn::Join": [
+              "",
+              [
+                "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs:",
+                {
+                  "Ref": "MistVersion"
+                },
+                "-",
+                {
+                  "Ref": "SparkVersion"
+                }
+              ]
+            ]
+          },
+          "Command": [
+            "spark-slave",
+            "spark://mist-worker-__NAMESPACE__:7077"
+          ],
+          "Essential": "true",
+          "Environment": [
+            {
+              "Name": "STACK_NAME",
+              "Value": {
+                "Ref": "AWS::StackName"
+              }
+            }
+          ],
+          "MountPoints": [
+            {
+              "ContainerPath": "/usr/share/mist/configs/",
+              "SourceVolume": "mist-configs"
+            },
+            {
+              "ContainerPath": "/jobs/",
+              "SourceVolume": "mist-jobs"
+            }
+          ]
+        }
+      ],
+      "Volumes": [
+        {
+          "Host": {
+            "SourcePath": "/mnt/efs/mist-jobs"
+          },
+          "Name": "mist-jobs"
+        },
+        {
+          "Host": {
+            "SourcePath": "/mnt/efs/mist-configs"
+          },
+          "Name": "mist-configs"
+        }
+      ]
+    }
+  },
+  "MistWorkerService__NAMESPACE__": {
+    "Type": "AWS::ECS::Service",
+    "DependsOn": [
+      "ASGroupWorker__NAMESPACE__",
+      "MistMasterService"
+    ],
+    "Properties": {
+      "PlacementConstraints": [
+        {
+          "Type": "memberOf",
+          "Expression": "attribute:MIST_ROLE == role_worker && attribute:MIST_NAMESPACE==__NAMESPACE__"
+        },
+        {
+          "Type": "distinctInstance"
+        }
+      ],
+      "Cluster": {
+        "Ref": "EcsCluster"
+      },
+      "DesiredCount": "1",
+      "TaskDefinition": {
+        "Ref": "WorkerTaskDefinition__NAMESPACE__"
+      }
+    }
+  },
+  "SparkSlaveService__NAMESPACE__": {
+    "Type": "AWS::ECS::Service",
+    "DependsOn": [
+      "ASGroupSparkSlave__NAMESPACE__",
+      "MistWorkerService__NAMESPACE__",
+      "MistMasterService"
+    ],
+    "Properties": {
+      "PlacementConstraints": [
+        {
+          "Type": "memberOf",
+          "Expression": "attribute:MIST_ROLE == role_spark_slave && attribute:MIST_NAMESPACE==__NAMESPACE__"
+        },
+        {
+          "Type": "distinctInstance"
+        }
+      ],
+      "Cluster": {
+        "Ref": "EcsCluster"
+      },
+      "DesiredCount": "__INSTANCE_COUNT__",
+      "TaskDefinition": {
+        "Ref": "WorkerTaskDefinition__NAMESPACE__"
+      }
+    }
   }
+}

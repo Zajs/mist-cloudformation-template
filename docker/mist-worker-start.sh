@@ -53,7 +53,7 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_N
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_ROLE__/role_spark_slave/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/$SPARK_SLAVE_SCOUNT/g")
 
-ADD="$launchConfiguration"
+ADD=$(echo $launchConfiguration)
 
 ##add worker
 launchConfiguration=$(cat $LC_TEMPLATE_FILE)
@@ -63,4 +63,13 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_N
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_ROLE__/role_worker/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/1/g")
 
-ADD="$ADD , $launchConfiguration"
+ADD=$(jq "$ADD + $launchConfiguration")
+
+launchConfiguration=$(cat $AS_TEMPLATE_FILE)
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__MIST_CONFIG__/$ARG_CONFIG/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_NAMESPACE/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/$SPARK_SLAVE_SCOUNT/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__RUN_OPTIONS__/$ARG_RUN_OPTIONS/g")
+
+ADD=$(jq "$ADD + $launchConfiguration")
+

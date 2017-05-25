@@ -1,4 +1,4 @@
-  "LC__TYPE____NAMESPACE__":{
+{"LC__TYPE____NAMESPACE__":{
     "Type": "AWS::AutoScaling::LaunchConfiguration",
     "Properties": {
       "ImageId": {
@@ -248,3 +248,4 @@
       ]
     }
   }
+}
