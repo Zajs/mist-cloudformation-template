@@ -22,6 +22,7 @@
       "Description": "ECS instance type",
       "Default": "t2.small",
       "AllowedValues": [
+        "t1.micro",
         "t2.small",
         "t2.medium",
         "m3.medium",
@@ -83,11 +84,16 @@
       "Type": "Number",
       "Default": "2"
     },
+    "SparkSpotPrice": {
+      "Type": "Number",
+      "Default": "0.01"
+    },
     "SparkInstanceType": {
       "Type": "String",
       "Description": "ECS instance type",
-      "Default": "t2.small",
+      "Default": "t1.micro",
       "AllowedValues": [
+        "t1.micro",
         "t2.small",
         "t2.medium",
         "m3.medium",
@@ -805,6 +811,12 @@
                 "Name":"SPARK_SLAVE_SCOUNT",
                 "Value":{
                   "Ref": "SparkSlavesCount"
+                }
+              },
+              {
+                "Name":"SPARK_SPOT_PRICE",
+                "Value":{
+                  "Ref": "SparkSpotPrice"
                 }
               }
             ],

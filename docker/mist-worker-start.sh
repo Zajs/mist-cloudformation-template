@@ -45,6 +45,8 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__TYPE__/SparkSlave/
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_NAMESPACE/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_ROLE__/role_spark_slave/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/$SPARK_SLAVE_SCOUNT/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__SPOT_PRICE__/$SPARK_SPOT_PRICE/g")
+
 
 ADD=$(echo $launchConfiguration)
 
@@ -55,6 +57,7 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__TYPE__/Worker/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_NAMESPACE/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_ROLE__/role_worker/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/1/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s/__SPOT_PRICE__/$SPARK_SPOT_PRICE/g")
 
 ADD=$(echo '{}' | jq "$ADD + $launchConfiguration")
 
