@@ -205,7 +205,7 @@
       },
       "DesiredCount": "__INSTANCE_COUNT__",
       "TaskDefinition": {
-        "Ref": "WorkerTaskDefinition__NAMESPACE__"
+        "Ref": "SparkSlavesTaskDefinition__NAMESPACE__"
       }
     }
   }
