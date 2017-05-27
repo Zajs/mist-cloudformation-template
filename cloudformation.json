@@ -61,6 +61,12 @@
       "Description": "ECS configuration scripts",
       "MinLength": 1
     },
+    "MistImageName": {
+      "Type": "String",
+      "Default": "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs",
+      "Description": "ECS image name",
+      "MinLength": 1
+    },
     "MistVersion": {
       "Type": "String",
       "Default": "0.11.0",
@@ -756,7 +762,10 @@
               "Fn::Join": [
                 "",
                 [
-                  "060183668755.dkr.ecr.eu-west-1.amazonaws.com/mist-ecs:",
+                  {
+                    "Ref": "MistImageName"
+                  },
+                  ":",
                   {
                     "Ref": "MistVersion"
                   },
