@@ -1,37 +1,29 @@
 #!/bin/bash
 
-
-shift
-while [[ $# > 1 ]]
-do
-  key="$1"
-
-  case ${key} in
-    --namespace)
-      ARG_NAMESPACE="$2"
-      shift
-      ;;
-
-    --jar)
-      ARG_JAR="$2"
-      shift
-      ;;
-
-    --config)
-      ARG_CONFIG="$2"
-      shift
-      ;;
-
-    --run-options)
-      ARG_RUN_OPTIONS="$2"
-      shift
-      ;;
-  esac
-
-shift
+while [ "$1" != "" ]; do
+    PARAM=`echo $1 | awk -F= '{print $1}'`
+    VALUE=`echo $1 | awk -F= '{print $2}'`
+    case $PARAM in
+        --namespace)
+            ARG_NAMESPACE=$VALUE
+            ;;
+        --config)
+            ARG_CONFIG=$VALUE
+            ;;
+        --run-options)
+            ARG_RUN_OPTIONS=$VALUE
+            ;;
+        --jar)
+            ARG_JAR=$VALUE
+            ;;
+        *)
+            echo "ERROR: unknown parameter \"$PARAM\""
+            usage
+            exit 1
+            ;;
+    esac
+    shift
 done
-
-echo ready
 
 LC_TEMPLATE_FILE=$MIST_HOME/bin/template/mist-worker-launchconfiguration.json
 AS_TEMPLATE_FILE=$MIST_HOME/bin/template/mist-worker-services.json
@@ -67,14 +59,15 @@ launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/1
 ADD=$(echo '{}' | jq "$ADD + $launchConfiguration")
 
 launchConfiguration=$(cat $AS_TEMPLATE_FILE)
-launchConfiguration=$(echo $launchConfiguration | sed -e "s/__MIST_CONFIG__/$ARG_CONFIG/g")
+launchConfiguration=$(echo $launchConfiguration | sed -e "s|__MIST_CONFIG__|$ARG_CONFIG|g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__NAMESPACE__/$ARG_NAMESPACE/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__INSTANCE_COUNT__/$SPARK_SLAVE_SCOUNT/g")
 launchConfiguration=$(echo $launchConfiguration | sed -e "s/__RUN_OPTIONS__/$ARG_RUN_OPTIONS/g")
 
 ADD=$(echo '{}' | jq "$ADD + $launchConfiguration")
+temp=$(echo $ORIGINAL_TEMPLATE | jq ".Resources = (.Resources + $ADD)")
 
 tfile=$(mktemp /tmp/foo.XXXXXXXXX)
-echo $ORIGINAL_TEMPLATE | jq ".Resources = (.Resources + $ADD)" > $tfile
+echo  $temp > $tfile
 
 aws cloudformation update-stack --stack-name $STACK_NAME --template-body file://$tfile --parameters ParameterKey=KeyName,UsePreviousValue=true ParameterKey=EcsClusterName,UsePreviousValue=true ParameterKey=EcsInstanceType,UsePreviousValue=true ParameterKey=RootUrlDownload,UsePreviousValue=true ParameterKey=MistVersion,UsePreviousValue=true ParameterKey=SparkVersion,UsePreviousValue=true ParameterKey=SparkSlavesCount,UsePreviousValue=true ParameterKey=SparkInstanceType,UsePreviousValue=true ParameterKey=EFSNameTag,UsePreviousValue=true --capabilities CAPABILITY_IAM

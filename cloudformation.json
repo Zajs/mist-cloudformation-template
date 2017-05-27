@@ -455,9 +455,11 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "iam:*",
                     "ec2:*",
                     "ecs:*",
                     "ecr:*",
+                    "autoscaling:*",
                     "am:*",
                     "cloudformation:*",
                     "elasticfilesystem:Describe*"
