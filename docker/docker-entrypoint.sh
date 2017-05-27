@@ -14,11 +14,12 @@ elif [ "$1" = 'spark-slave' ]; then
   $SPARK_HOME/sbin/start-slave.sh $2
   PID=`cat /tmp/spark-*.pid`
   echo "Started PID=$PID"
-  while ps -p $PID > /dev/null
+  while [ -e /proc/$PID ]
   do
-    sleep 60
+    sleep 10
   done
   echo "Finished"
+  ps aux
 else
   exec "$@"
 fi
